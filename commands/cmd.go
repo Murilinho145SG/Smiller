@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
-	"smiller/lines"
+	"smiller/utils"
 	"strings"
 )
 
@@ -140,70 +142,102 @@ func cd(args ...string) error {
 	return nil
 }
 
+func mget(args ...string) error {
+	if len(args) == 1 {
+		utils.System("use mget help to list then commands")
+		return nil
+	}
+
+	value := args[1]
+	if value == "" {
+		return errors.New("invalid arguments")
+	}
+
+	if value == "help" {
+		help(map[string]string{
+			"[url]": "make a get requisition for the url",
+		})
+		return nil
+	}
+
+	if !strings.HasPrefix(value, "http") {
+		return errors.New("invalid url")
+	}
+
+	r, err := http.Get(value)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(r.Status, r.Request.Proto)
+	for k, v := range r.Header {
+		fmt.Println(k + ":", v)
+	}
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	fmt.Println("\n" + string(b))
+
+	return nil
+}
+
+func help(values map[string]string) {
+	for k, v := range values {
+		fmt.Println("	\033[33m"+k, "\033[0m"+v)
+	}
+}
+
 func task(args ...string) error {
-	if len(args) > 3 {
-		return errors.New("invalid params")
+	if len(args) == 1 {
+		utils.System("use task help to list the commands")
 	}
 
-	var tasks map[string]interface{}
-	b, err := os.ReadFile("./task.json")
-	if err != nil {
-		return err
+	fP := ""
+	if len(args) > 1 {
+		fP = args[1]
 	}
 
-	taskName := args[1]
+	if fP == "help" && len(args) == 2 {
+		help(map[string]string{
+			"-l":                 "lists all created automations",
+			"create [task name]": "create a task file",
+			"[task name]":        "execute the task. But if there are parameters, stop them right away",
+		})
 
-	err = json.Unmarshal(b, &tasks)
-	if err != nil {
-		return err
+		return nil
 	}
 
-	taskInfo := tasks[taskName]
-	if taskInfo == nil {
-		return errors.New("non-existent task")
-	}
+	if fP == "-l" && len(args) == 2 {
+		if _, err := os.Stat("./task.json"); os.IsNotExist(err) {
+			utils.System("Empty task file")
+			f, err := os.Create("./task.json")
+			if err != nil {
+				return err
+			}
 
-	taskMap, ok := taskInfo.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("invalid structure for task '%s'", taskName)
-	}
-
-	commands, ok := taskMap["command"].([]interface{})
-	if !ok {
-		return fmt.Errorf("invalid structure for 'command' in task '%s'", taskName)
-	}
-
-	var cmdStrings []string
-	for _, cmd := range commands {
-		if str, ok := cmd.(string); ok {
-			cmdStrings = append(cmdStrings, str)
-		} else {
-			return fmt.Errorf("invalid type in 'command' array for task '%s'", taskName)
-		}
-	}
-
-	fmt.Println("Commands:", cmdStrings)
-
-	for _, cmd := range cmdStrings {
-		v := args[2]
-		if v != "" {
-			s := strings.Split(v, ":")
-			varName := s[0]
-			newName := s[1]
-			cmd = strings.ReplaceAll(cmd, varName, newName)
+			defer f.Close()
+			return nil
 		}
 
-		values := lines.Parser(cmd)
-		c := exec.Command(values[0], values[1:]...)
-		c.Stderr = os.Stderr
-		c.Stdout = os.Stdout
-		c.Dir = ActualDir
-
-		if err := c.Run(); err != nil {
+		b, err := os.ReadFile("./task.json")
+		if err != nil {
 			return err
 		}
 
-		fmt.Println("Executing command:", cmd)
+		var tasks map[string]interface{}
+		err = json.Unmarshal(b, &tasks)
+		if err != nil {
+			return err
+		}
+
+		for k := range tasks {
+			fmt.Println("\033[33m-", k, "\033[0m")
+		}
+	}
+
+	if fP == "create" && len(args) == 3 {
+
 	}
 
 	return nil

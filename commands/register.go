@@ -29,4 +29,5 @@ func RegisterCommands() {
 	RegisterCommand("rm", rm)
 	RegisterCommand("task", task)
 	RegisterCommand("cd", cd)
+	RegisterCommand("mget", mget)
 }
