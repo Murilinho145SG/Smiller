@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"smiller/commands"
 	"smiller/lines"
 	"strings"
+	"syscall"
 )
 
 type Config struct {
@@ -16,7 +18,7 @@ type Config struct {
 }
 
 func ReadConfig() (*Config, error) {
-	b, err := os.ReadFile("./smiller.config.json")
+	b, err := os.ReadFile("C:/Program Files/Smiller/smiller.config.json")
 	if err != nil {
 		return nil, err
 	}
@@ -37,6 +39,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		fmt.Println("\nCtrl+C ignored. Use exit to exit")
+	}()
+
 	commands.RegisterCommands()
 	dir, err := os.Getwd()
 	if err != nil {
@@ -48,7 +58,7 @@ func main() {
 
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Print("\033[34m"+c.User, " \033[35m|Smiller>\033[0m ")
+		fmt.Print("\n\033[34m"+c.User, " \033[35m|Smiller>\033[0m ")
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 
@@ -77,6 +87,10 @@ func main() {
 		cmd.Dir = commands.ActualDir
 
 		if err := cmd.Run(); err != nil {
+			if strings.Contains(err.Error(), "status 255") {
+				continue
+			}
+			
 			fmt.Println("Error for exec command: executable file not found")
 		}
 	}

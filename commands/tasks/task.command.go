@@ -41,7 +41,7 @@ func register(n, d string, h handler) {
 }
 
 func list(args ...string) error {
-	b, err := os.ReadFile("./task.json")
+	b, err := os.ReadFile("C:/Program Files/Smiller/task.json")
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ type Params struct {
 }
 
 func GetTasks() ([]*Task, error) {
-	b, err := os.ReadFile("./task.json")
+	b, err := os.ReadFile("C:/Program Files/Smiller/task.json")
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func GetTasks() ([]*Task, error) {
 }
 
 func GetTask(taskName string) (*Task, error) {
-	b, err := os.ReadFile("./task.json")
+	b, err := os.ReadFile("C:/Program Files/Smiller/task.json")
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func test(args ...string) error {
 }
 
 func readFiles(taskName string) (map[string][]byte, error) {
-	de, err := os.ReadDir("./tasks/" + taskName)
+	de, err := os.ReadDir("C:/Program Files/Smiller/tasks/" + taskName)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func readFiles(taskName string) (map[string][]byte, error) {
 			return nil, errors.New("is not support folders")
 		}
 
-		b, err := os.ReadFile("./tasks/" + taskName + "/" + entry.Name())
+		b, err := os.ReadFile("C:/Program Files/Smiller/tasks/" + taskName + "/" + entry.Name())
 		if err != nil {
 			return nil, err
 		}

@@ -24,6 +24,10 @@ func ls(args ...string) error {
 		dir = args[1]
 	}
 
+	if len(dir) == 2 {
+		dir += "\\"
+	}
+
 	de, err := os.ReadDir(dir)
 	if err != nil {
 		return err
@@ -265,5 +269,15 @@ func task(args ...string) error {
 		return err
 	}
 
+	return nil
+}
+
+func echo(args ...string) error {
+	fmtArgs := make([]any, len(args[1:]))
+	for i, v := range args[1:] {
+		fmtArgs[i] = v
+	}
+
+	fmt.Println(fmtArgs...)
 	return nil
 }

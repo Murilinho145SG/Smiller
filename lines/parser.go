@@ -1,7 +1,6 @@
 package lines
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -37,7 +36,7 @@ func Parser(input string) []string {
 			continue
 		}
 
-		if r == ' ' && !inQuotes {
+		if r == ' ' && !inQuotes && !inSimpleQuotes {
 			if currentArg.Len() > 0 {
 				args = append(args, currentArg.String())
 				currentArg.Reset()
@@ -51,8 +50,6 @@ func Parser(input string) []string {
 	if currentArg.Len() > 0 {
 		args = append(args, currentArg.String())
 	}
-
-	fmt.Println(args)
 
 	return args
 }
