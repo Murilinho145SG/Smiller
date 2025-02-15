@@ -30,4 +30,5 @@ func RegisterCommands() {
 	RegisterCommand("task", task)
 	RegisterCommand("cd", cd)
 	RegisterCommand("mget", mget)
+	RegisterCommand("mpost", mpost)
 }

@@ -1,16 +1,17 @@
 package commands
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
+	"smiller/commands/ic"
+	"smiller/commands/tasks"
 	"smiller/utils"
 	"strings"
 )
@@ -125,7 +126,8 @@ func cd(args ...string) error {
 		return nil
 	}
 
-	f, err := os.Stat(value)
+	path := ActualDir + "\\" + value
+	f, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
@@ -134,11 +136,7 @@ func cd(args ...string) error {
 		return errors.New("is not a dir")
 	}
 
-	s := path.Join(value)
-	fmt.Println(s)
-	ActualDir += "\\" + s
-	fmt.Println(ActualDir)
-
+	ActualDir += "\\" + value
 	return nil
 }
 
@@ -171,7 +169,52 @@ func mget(args ...string) error {
 
 	fmt.Println(r.Status, r.Request.Proto)
 	for k, v := range r.Header {
-		fmt.Println(k + ":", v)
+		fmt.Println(k+":", v)
+	}
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	fmt.Println("\n" + string(b))
+
+	return nil
+}
+
+func mpost(args ...string) error {
+	if len(args) == 1 {
+		utils.System("use mpost help to list then commands")
+		return nil
+	}
+
+	value := args[1]
+	if value == "" {
+		return errors.New("invalid arguments")
+	}
+
+	if value == "help" {
+		help(map[string]string{
+			"[url]": "make a post requisition for the url",
+		})
+		return nil
+	}
+
+	if !strings.HasPrefix(value, "http") {
+		return errors.New("invalid url")
+	}
+
+	body := args[2]
+	if body == "" {
+		return errors.New("no body present")
+	}
+
+	r, err := http.Post(value, "application/json", bytes.NewReader([]byte(body)))
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(r.Status, r.Request.Proto)
+	for k, v := range r.Header {
+		fmt.Println(k+":", v)
 	}
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -191,53 +234,35 @@ func help(values map[string]string) {
 func task(args ...string) error {
 	if len(args) == 1 {
 		utils.System("use task help to list the commands")
-	}
-
-	fP := ""
-	if len(args) > 1 {
-		fP = args[1]
-	}
-
-	if fP == "help" && len(args) == 2 {
-		help(map[string]string{
-			"-l":                 "lists all created automations",
-			"create [task name]": "create a task file",
-			"[task name]":        "execute the task. But if there are parameters, stop them right away",
-		})
-
 		return nil
 	}
 
-	if fP == "-l" && len(args) == 2 {
-		if _, err := os.Stat("./task.json"); os.IsNotExist(err) {
-			utils.System("Empty task file")
-			f, err := os.Create("./task.json")
-			if err != nil {
-				return err
-			}
-
-			defer f.Close()
-			return nil
-		}
-
-		b, err := os.ReadFile("./task.json")
-		if err != nil {
-			return err
-		}
-
-		var tasks map[string]interface{}
-		err = json.Unmarshal(b, &tasks)
-		if err != nil {
-			return err
-		}
-
-		for k := range tasks {
-			fmt.Println("\033[33m-", k, "\033[0m")
-		}
+	var v string
+	if len(args) > 1 {
+		v = args[1]
 	}
 
-	if fP == "create" && len(args) == 3 {
+	if v == "help" && len(args) == 2 {
+		handlerDesc := make(map[string]string)
+		for k, t := range tasks.TasksRegistries {
+			handlerDesc[k] = t.Description
+		}
 
+		help(handlerDesc)
+		return nil
+	}
+
+	ic.ActualDir = ActualDir
+
+	t := tasks.TasksRegistries[v]
+
+	if t == nil {
+		return errors.New("invalid params, use help for the commands")
+	}
+
+	err := t.Handler(args...)
+	if err != nil {
+		return err
 	}
 
 	return nil

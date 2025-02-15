@@ -1,6 +1,0 @@
-{
-  "goinit": {
-    "command": ["go mod init name", "git init"],
-    "files": ["main.go", ".gitignore"]
-  }
-}

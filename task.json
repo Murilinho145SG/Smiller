@@ -1,0 +1,9 @@
+{
+  "go": {
+    "command": ["go mod init name", "git init"],
+    "files": ["main.go", ".gitignore"]
+  },
+  "next": {
+    "command": ["npx create-next-app@latest ."]
+  }
+}
